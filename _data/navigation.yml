@@ -1,4 +1,6 @@
 header:
+  - title:      Home
+    url:        /
   - titles:
       en      : &EN       Archive
       en-GB   : *EN
