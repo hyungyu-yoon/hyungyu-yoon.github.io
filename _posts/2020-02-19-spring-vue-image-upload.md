@@ -1,6 +1,9 @@
 ---
 title: Vue axios + Spring boot 이미지 업로드 하기
-tags: Spring, Vue
+tags: 
+ - Spring
+ - Vue
+ key: 1
 ---
 
 ### Vue axios + Spring boot 이미지 업로드 하기
