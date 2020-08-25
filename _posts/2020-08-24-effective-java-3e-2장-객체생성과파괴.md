@@ -126,3 +126,488 @@ ___
 
 
 ## 아이템 2:  생성자에 매개변수가 많다면 빌더를 고려하라
+
+##### 점층적 생성자 패턴
+
+ 정적 팩터리 메서드와 생성자는 선택적 매개변수가 많을 경우 적절히 대응하기가 어렵다. 다수의 매개변수가 있고 필요한 것만 받을 때 프로그래머들은 점층적 생성자 패턴(telescoping constructor pattern)을 사용하여 매개변수를 점층적으로 늘리는 방식을 사용했다.
+ **점층적 생성자 패턴도 쓸 수는 있지만, 매개변수가 많아지면 코드를 작성하거나 읽는 것이 어려워진다.**
+
+~~~java
+public class NutritionFacts {
+    private final int servingSize;  // (mL, 1회 제공량)     필수
+    private final int servings;     // (회, 총 n회 제공량)  필수
+    private final int calories;     // (1회 제공량당)       선택
+    private final int fat;          // (g/1회 제공량)       선택
+    private final int sodium;       // (mg/1회 제공량)      선택
+    private final int carbohydrate; // (g/1회 제공량)       선택
+
+    public NutritionFacts(int servingSize, int servings) {
+        this(servingSize, servings, 0);
+    }
+
+    public NutritionFacts(int servingSize, int servings,
+                          int calories) {
+        this(servingSize, servings, calories, 0);
+    }
+
+    public NutritionFacts(int servingSize, int servings,
+                          int calories, int fat) {
+        this(servingSize, servings, calories, fat, 0);
+    }
+
+    public NutritionFacts(int servingSize, int servings,
+                          int calories, int fat, int sodium) {
+        this(servingSize, servings, calories, fat, sodium, 0);
+    }
+
+    public NutritionFacts(int servingSize, int servings,
+                          int calories, int fat, int sodium, int carbohydrate) {
+        this.servingSize = servingSize;
+        this.servings = servings;
+        this.calories = calories;
+        this.fat = fat;
+        this.sodium = sodium;
+        this.carbohydrate = carbohydrate;
+    }
+}
+~~~
+
+
+
+##### 자바빈즈 패턴
+
+ 매개 변수가 많을 때 활용할 수 있는 두 번째 대안인 자바빈즈 패턴(JavaBeans pattern)이 있다. 매개 변수가 없는 생성자를 만들고 세터(setter) 메서드로 원하는 값을 설정한다.
+ **자바빈즈 패턴에서는 객체 하나를 만들려면 메서드를 여러 개 호출해야 하고, 객체가 완전히 생성되기 전까지는 일관성(consistency)이 무너진 상태에 놓이게 되어 클래스를 불변으로 만들 수 없다.**
+
+~~~java
+NutritionFacts cocaCola = new NutritionFacts(); // 디폴트 생성자 생성
+cocaCola.setServingSize(240); // setter로 값을 채움
+cocaCola.setServings(8);
+cocaCola.setCalories(100);
+cocaCola.setSodium(35);
+cocaCola.setCarbohydrate(27); 
+~~~
+
+
+
+### 빌더 패턴💎
+
+점층적 생성자 패턴의 안정성과 자바빈즈 패턴의 가독성을 겸비한 **빌더 패턴(Builder pattern)**
+클라이언트는 필수 매개변수만으로 생성자(or 정적 팩터리)를 호출해 빌더 객체를 얻고 빌더 객체가 제공하는 일종의 세터 메서드로 원하는 매개변수를 설정한다. 마지막으로 build 메서드를 호출해 필요한(보통은 불변인) 객체를 얻는다.
+
+~~~java
+public class NutritionFacts {
+    private final int servingSize;
+    private final int servings;
+    private final int calories;
+    private final int fat;
+    private final int sodium;
+    private final int carbohydrate;
+
+    public static class Builder {
+        // 필수 매개변수
+        private final int servingSize;
+        private final int servings;
+
+        // 선택 매개변수 - 기본값으로 초기화한다.
+        private int calories = 0;
+        private int fat = 0;
+        private int sodium = 0;
+        private int carbohydrate = 0;
+
+        public Builder(int servingSize, int servings) {
+            this.servingSize = servingSize;
+            this.servings = servings;
+        }
+
+        public Builder calories(int val) {
+            calories = val;
+            return this;
+        }
+
+        public Builder fat(int val) {
+            fat = val;
+            return this;
+        }
+
+        public Builder sodium(int val) {
+            sodium = val;
+            return this;
+        }
+
+        public Builder carbohydrate(int val) {
+            carbohydrate = val;
+            return this;
+        }
+
+        public NutritionFacts build() {
+            return new NutritionFacts(this);
+        }
+    }
+
+    private NutritionFacts(Builder builder) {
+        servingSize = builder.servingSize;
+        servings = builder.servings;
+        calories = builder.calories;
+        fat = builder.fat;
+        sodium = builder.sodium;
+        carbohydrate = builder.carbohydrate;
+    }
+
+    public static void main(String[] args) {
+        // 빌더를 사용하여 객체 생성
+        NutritionFacts cocaCola = new NutritionFacts.Builder(240, 8)
+                .calories(100).sodium(35).carbohydrate(27).build();
+    }
+}
+~~~
+
+ 이 객체의 유효성을 검사를 위해 잘못된 매개변수를 최대한 일찍 발견하도록 빌더의 생성자와 메서드에서 입력 매개변수를 검사하고, bulid 메서드가 호출하는 생성자에서 여러 매개변수에 걸친 불변식(invariant)을 검사하자.
+
+##### 빌더 패턴은 계층적으로 설계된 클래스와 함께 쓰기에 좋다.
+
+ 각 계층의 클래스에 관련 빌더를 멤버로 정의하자. 추상 클래스는 추상 빌더를, 구체 클래스는 구체 빌더를 갖게 한다.
+
+###### 피자 클래스
+
+~~~java
+public abstract class Pizza {
+    public enum Topping { HAM, MUSHROOM, ONION, PEPPER, SAUSAGE }
+    final Set<Topping> toppings;
+
+    abstract static class Builder<T extends Builder<T>> {
+        EnumSet<Topping> toppings = EnumSet.noneOf(Topping.class);
+        public T addTopping(Topping topping) {
+            toppings.add(Objects.requireNonNull(topping));
+            return self();
+        }
+
+        abstract Pizza build();
+
+        // 하위 클래스는 이 메서드를 재정의(overriding)하여
+        // "this"를 반환하도록 해야 한다.
+        protected abstract T self();
+    }
+    
+    Pizza(Builder<?> builder) {
+        toppings = builder.toppings.clone(); // 아이템 50 참조
+    }
+}
+~~~
+
+###### 뉴욕 피자
+
+~~~java
+public class NyPizza extends Pizza {
+    public enum Size { SMALL, MEDIUM, LARGE }
+    private final Size size;
+
+    public static class Builder extends Pizza.Builder<Builder> {
+        private final Size size;
+
+        public Builder(Size size) {
+            this.size = Objects.requireNonNull(size);
+        }
+
+        @Override public NyPizza build() {
+            return new NyPizza(this);
+        }
+
+        @Override protected Builder self() { return this; }
+    }
+
+    private NyPizza(Builder builder) {
+        super(builder);
+        size = builder.size;
+    }
+}
+~~~
+
+###### 칼초네 피자
+
+~~~java
+public class Calzone extends Pizza {
+    private final boolean sauceInside;
+
+    public static class Builder extends Pizza.Builder<Builder> {
+        private boolean sauceInside = false; // 기본값
+
+        public Builder sauceInside() {
+            sauceInside = true;
+            return this;
+        }
+
+        @Override public Calzone build() {
+            return new Calzone(this);
+        }
+
+        @Override protected Builder self() { return this; }
+    }
+
+    private Calzone(Builder builder) {
+        super(builder);
+        sauceInside = builder.sauceInside;
+    }
+}
+~~~
+
+###### 사용
+
+~~~java
+NyPizza pizza = new NyPizza.Builder(SMALL)
+                .addTopping(SAUSAGE).addTopping(ONION).build();
+        Calzone calzone = new Calzone.Builder()
+                .addTopping(HAM).sauceInside().build();
+~~~
+
+ 빌더 패턴에 장점만 있는 것은 아니다. 객체를 만들기 위해 먼저 빌더 부터 만들어야 한다. 빌더 생성 비용이 크지는 않지만 성능에 민감한 상황에는 문제가 될 수 있다. 매개변수가 4개 이상은 되어야 값어치를 하므로 매개변수가 많다면 애초에 빌더 패턴으로 시작하는 편이 나을 때가 많다.
+
+
+
+##### 핵심정리
+
+>생성자나 정적 팩터리가 처리해야 할 매개변수가 많다면 빌더 패턴을 선택하는 게 더 낫다. 매개변수 중 다수가 필수가 아니거나 같은 타입이면 특히 더 그렇다. 빌더는 점층적 생성자보다 클라이언트 코드를 읽고 쓰기가 편하고, 자바빈즈보다 훨씬 안전하다.
+
+
+
+___
+
+
+
+## 아이템 3: private 생성자나 열거 타입으로 싱글턴임을 보증하라
+
+ **싱글턴(singleton)**이란 인스턴스를 오직 하나만 생성할 수 있는 클래스를 말한다. 싱글턴을 만드는 방식은 세 방식이 있다.
+
+1. 생성자는 private로 감추고, public static 멤버를 하나 마련한다.
+
+   ~~~java
+   public class Elvis{
+   	public static final Elvis INSTANCE = new Elvis();
+   	private Elvis(){ ... }
+   	
+   	public void leveTheBuilding { ... }
+   }
+   ~~~
+
+   private 생성자는 public static final 필드인 Elvis.INSTANCE를 초기화 할 때 딱 한 번만 호출 된다. public, protected 생성자가 없으므로 Elvis 클래스가 단 하나뿐임이 보장된다.
+
+   ##### 장점
+
+   * 해당 클래스가 싱글턴임이 API에 명백히 드러난다. public static 필드가 final 이므로 다른 객체를 참조할 수 없다. 
+   * 그리고 간결하다.
+
+2. 생성자는 private로 감추고, 정적 팩터리 메서드를 public static 멤버로 제공한다.
+
+   ~~~java
+   public class Elvis{
+   	private static final Elvis INSTANCE = new Elvis();
+   	private Elvis(){ ... }
+   	public static Elvis getInstance(){
+   		return INSTANCE;
+   	}
+   	
+   	public void leveTheBuilding { ... }
+   }
+   ~~~
+
+   Elvis.getInstance는 항상 같은 객체의 참조를 반환한다.
+
+   ##### 장점
+
+   * API를 바꾸지 않고도 싱글턴이 아니게 변경할 수 있다. 
+   * 정적 팩터리를 제네릭 싱글턴 팩터리로 만들 수 있다.
+   * 정적 팩터리의 메서드 참조를 공급자(suplier)로 사용할 수 있다.
+
+둘 중 하나의 방식으로 만든 싱글턴 클래스를 직렬화하려면 단순히 Serializable를 선언하는 것으로는 부족하다. 모든 인스턴스 필드를 일시적(transient)라고 선언하고 readResolve 메서드를 제공해야 한다. 이렇게 하지 안으면 직렬화된 인스턴스를 역직렬화 할 때마다 새로운 인스턴스가 만들어진다.
+
+~~~java
+private Object readResolve() {
+	return INSTANCE;
+}
+~~~
+
+3. 원소가 하나인 열거 타입을 선언하는 것이다.
+
+   ~~~java
+   public enum Elvis {
+   	INSTANCE;
+   	
+   	public void leaveTheBuilding() { ... }
+   }
+   ~~~
+
+   더 간결하고, 직렬화할 수 있고, 아주 복잡한 직렬화 상황이나 리플렉션 공격에서도 다른 인스턴스가 생기는 것을 막아준다.
+
+   ##### 대부분의 상황에서는 원소가 하나뿐인 열거 타입이 싱글턴을 만드는 가장 좋은 방법이다.
+
+   단, 만들려는 싱글턴이 Enum 외의 클래스를 상속해야 한다면 이 방법은 사용할 수 없다.
+
+   
+
+___
+
+
+
+## 아이템 4: 인스턴스화를 막으려거든 private 생성자를 사용하라
+
+ 이따금 단순히 정적 메서드와 정적 필드만을 담은 클래스를 만들고 싶을 때가 있을 것이다. 공통의 일을 하는 유틸리티 클래스를 만들 때 사용할 수 있다. 유틸리티 클래스는 인스턴스로 만들어 쓰려고 설계하지 않지만 생성자를 명시하지 않으면 기본 생성자를 자동으로 생성한다. 추상 클래스로 만드는 것으로도 인스턴스화를 막을 수 없다. **오직 명시된 생성자가 없도록 private 생성자를 추가하면 클래스의 인스턴스화를 막을 수 있다.**
+
+~~~java
+public class UtilityClass {
+	// 기본 생성자가 만들어지는 것을 막는다(인스턴스화 방지)
+	private UtilityClass(){
+		throw new AssertionError();
+	}
+	
+	public static ...
+}
+~~~
+
+이 코드는 어떤 환경에서도 클래스의 인스턴스화를 막아준다. 생성자가 존재하지만 호출할 수 없어 그다지 직관적이지는 않다. 적절한 주석을 달아 이해할 수 있도록 한다.
+
+
+
+___
+
+
+
+## 아이템 5: 자원을 직접 명시하지 말고 의존 객체 주입을 사용하라
+
+ 많은 클래스는 하나 이상의 자원에 의존한다. 사전에 의존하는 맞춤법 검사기 예를 보자.
+
+##### 정적 유틸리티를 잘못 사용한 예 - 유연하지 않고 테스트하기 어렵다
+
+~~~java
+public class SpellChecker {
+	private static final Lexicon dictionary = ...;
+	
+	private SpellChecker(){} // 객체 생성 방지
+	
+	public static boolean isValid(String word) { ... }
+	public static boolean List<String> suggestions(String typo) { ... }
+}
+~~~
+
+##### 싱글턴을 잘못 사용한 예 - 유연하지 않고 테스트하기 어렵다.
+
+~~~java
+public class SpellChecker {
+	private final Lexicon dictionary = ...;
+	
+	private SpellChecker() {}
+	public static SpellChecker INSTANCE = new SpellChecker();
+	
+	public boolean isValid(String word) { ... }
+	public List<String> suggestions(String typo) { ... }
+}
+~~~
+
+두 방식모두 사전을 단 하나만 사용한다고 가정하는 점에서 훌륭하지 않다. 실전에서는 여러 사전이 필요할 수 있다.
+
+##### 인스턴스를 생성할 때 생성자에 필요한 자원을 넘겨주는 방식 - 의존 객체 주입😀
+
+의존 객체 주입은 유연성과 테스트 용이성을 높혀준다.
+
+~~~java
+public class SpellCheker {
+	private final Lexicon dictionary;
+	
+	public SpellChecker(Lexicon dictionary){
+		this.dictionary = Object.requireNonNull(dictionary);
+	}
+	
+	public boolean isValid(String word) { ... }
+	public List<String> suggestions(String typo) { ... }
+}
+~~~
+
+자원이 몇 개든 상관 없이 필요한 의존 객체를 주입하여 사용할 수 있다.
+
+이 패턴의 쓸만한 변형으로 생성자에 자원 팩터리를 넘겨주는 방식이 있다. 팩터리란 호출할 때마다 특정 타입의 인스턴스를 반복해서 만들어주는 객체를 말한다. **팩터리 메서드 패턴(factory method pattern)** 을 구현한 것.
+
+의존 객체 주입이 유연성과 테스트 용이성을 개선해주지만, 의존성이 수 천개가 되는 큰 프로젝트에서는 코드를 어지럽게 만든다. 이를 돕기 위한 대거(Dagger), 주스(Guice), 스프링(Spring) 같은 의존 객체 주입 프레임워크가 있다.
+
+##### 핵심 정리
+
+>클래스가 내부적으로 하나 이상의 자원에 의존하고, 그 자원이 클래스 동작에 영향을 준다면 싱글턴과 정적 유틸리티 클래스는 사용하지 않는 것이 좋다. 이 자원들을 클래스가 직접 만들게 해서도 안된다. 대신 필요한 자원을 생성자에 넘겨주자. 의존 객체 주입이라 하는 이 기법은 클래스의 유연성, 재사용성, 테스트 용이성을 기막히게 개선해준다.
+
+
+
+___
+
+
+
+## 아이템 6: 불필요한 객체 생성을 피하라
+
+ 똑같은 기능의 객체를 매번 생성하기보다 객체 하나를 재사용하는 편이 나을 때가 많다. 재사용은 빠르고 세련되다. 특히 불변 객체는 언제든 재사용할 수 있다.
+
+##### 불변 객체인 String
+
+~~~java
+String str = new String("apple");
+~~~
+
+이 코드는 실행될 때마다 매번 String 인스턴스를 새로 만든다.
+
+~~~java
+String str = "apple";
+~~~
+
+이 코드는 새로운 인스턴스를 매번 만들지 않고 단 하나의 String 인스턴스를 사용한다. 똑같은 문자열 리터럴을 사용하는 모든 코드가 같은 객체를 재사용함이 보장된다.
+
+
+
+##### 생성자 대신 정적 팩터리 메서드를 제공하는 불변 클래스
+
+정적 팩터리 메서드의 사용으로 불필요한 객체 생성을 피할 수 있다. 불변 객체만이 아니라 가변 객체라 하더라도 사용중에 변경 되지 않을 것을 안다면 사용할 수 있다.
+
+
+
+##### 생성 비용이 아주 비싼 객체
+
+ 비싼 객체가 반복해서 필요하다면 캐싱하여 재사용하자.
+
+~~~java
+static boolean isRomanNumeralSlow(String s) {
+	return s.matches("^(?=.)M*(C[MD]|D?C{0,3})"
+             + "(X[CL]|L?X{0,3})(I[XV]|V?I{0,3})$");
+}
+~~~
+
+ String.matches는 정규표현식으로 문자열 행태를 확인하는 가장 쉬운 방법이지만, 성능이 중요한 상황에서는 반복해 사용하기에 적합하지 않다. 이 메서드 내부의 Pattern 인스턴스는 한번 사용하고 버려진다.
+
+ 성능을 개선하려면 필요한 정규표현식을 표현하는 Pattern 인스턴스를 클래스 초기화 과정에서 직접 생성해 캐싱하고 나중에 isRomanNumeral 메서드가 호출될 때마다 이 인스턴스를 재사용한다. 
+
+~~~java
+private static final Pattern ROMAN = Pattern.compile(
+            "^(?=.)M*(C[MD]|D?C{0,3})"
+                    + "(X[CL]|L?X{0,3})(I[XV]|V?I{0,3})$");
+
+static boolean isRomanNumeralFast(String s) {
+	return ROMAN.matcher(s).matches();
+}
+~~~
+
+성능만 좋아지는 것만 아니라 코드도 명확해졌다.
+
+
+
+##### 불필요한 객체 생성 - 오토박싱(auto boxing)
+
+ 오토박싱은 프로그래머가 기본 타입과 박싱된 기본 타입을 섞어 쓸 때 자동으로 상호 변환해주는 기술이다. 코드상으로 함께 사용했을 때 문제는 없을 수 있지만 성능상에서 큰 문제가 발생할 수 있다. 박싱된 기본 타입보다는 기본 타입을 사용하고, 의도치 않은 오토박싱이 숨어들지 않도록 주의하자.
+
+
+
+##### 적절한 객체 생성이 필요하다
+
+객체 생성은 비싸니 피해야 한다는 것은 아니다. 프로그램의 명확성, 간결성, 기능을 위해서 객체를 추가로 생성하는 것이라면 일반적으로 좋은일이다. 
+
+아주 무거운 객체가 아닌 이상 객체 생성을 피하기 위해 객체 pool을 만들지 말자. (데이터베이스 연결 같이 생성 비용이 큰 경우)
+
+
+
+___
+
+
+
+## 아이템 7: 다 쓴 객체 참조를 해제하라
