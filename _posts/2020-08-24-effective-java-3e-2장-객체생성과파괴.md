@@ -611,3 +611,183 @@ ___
 
 
 ## 아이템 7: 다 쓴 객체 참조를 해제하라
+
+자바는 가비지 컬렉터가 다 사용된 객체를 알아서 회수에 메모리 관리의 수고를 덜어준다. 하지만 메모리 관리에 더 이상 신경을 쓰지 않아도 되는 것은 아니다.
+
+##### 스택 예제 - 메모리 누수가 일어나는 위치
+
+~~~java
+public class Stack {
+    ...
+    public Object pop() {
+        if (size == 0)
+            throw new EmptyStackException();
+        return elements[--size];
+    } 
+  	...
+}
+~~~
+
+ 이 예제에서 스택에서 꺼내진 객체들을 가비지 컬렉터는 회수하지 않는다. 프로그램에서 더 이상 사용되지 않더라도 이 스택이 객체들의 다 쓴 참조(obsolete reference)를 여전히 가지고 있기 때문이다. 가비지 컬렉션 언어에서는 의도치 않게 객체를 살려두는 메모리 누수를 찾기 아주 까다롭다. 그래서 단 몇 개의 객체가 매우 많은 객체를 회수하지 못하게 할 수 있고 이는 잠재적으로 성능에 악영향을 줄 수 있다.
+
+##### 해법
+
+해당 참조를 다 썼을 때 null 처리하면 된다.
+
+~~~java
+public class Stack {
+    ...
+    public Object pop() {
+        if (size == 0)
+            throw new EmptyStackException();
+        Object result = elements[--size];
+        elements[size] = null; // 다 쓴 참조 해제
+        return result;
+    }
+  	...
+}
+~~~
+
+ 다 쓴 참조를 null 처리하면 다른 이점도 있다. 만약 null 처리한 참조를 실수로 사용하려 하면 프로그램은 즉시 NullPointerException을 던지며 종료된다. 프로그램의 오류는 가능한 조기에 발견하는 것이 좋다.
+ 이 문제로 인하여 모든 객체를 다 쓰자마자 일일히 null 처리할 필요도 없고 바람직하지도 않다. **객체 참조를 null 처리하는 일은 예외적인 경우여야 한다.**
+
+##### null 처리를 해야하는 경우
+
+ 스택처럼 메모리를 자기가 관리하는 경우에 해야한다. 이 스택은 객체 참조를 담는 elements 배열로 저장소 풀을 만들어 원소를 관리한다. 배열의 활성 영역에 속한 원소들이 사용되고 비활성 영역은 사용되지 않는다. 가비지 컬렉터는 이것을 모르기 때문에 프로그래머가 직접 비활성 영역이 되는 순간 null 처리를 하여 더 이상 쓰이지 않는 다는 것을 알려야 한다.
+
+> 자기 메모리를 직접 관리하는 클래스라면 프로그래머는 항시 메모리 누수에 주의해야 한다.
+
+ 캐시 역시 메모리 누수를 일으키는 주범이다. 객체 참조를 캐시에 넣고 그 객체를 다 쓴 뒤로 한참을 두는 경우가 있다. 엔트리가 살아있는 캐시가 필요한 상황이라면 WeakHashMap을 사용해 캐시를 만들자. 다 쓴 엔트리는 즉시 자동으로 제거 될 것이다.
+
+ 리스너 혹은 콜백도 메모리 누수가 있다. 콜백을 등록만 하고 명확히 해지하지 않는다면, 뭔가 조치를 취하지 않는 이상 콜백은 쌓일 것이다. WeakHashMap에 키로 저장하자.
+
+##### 핵심정리
+
+> 메모리 누수는 겉으로 잘 드러나지 않아 시스템에 수년간 잠복하는 사례도 있다. 이런 누수는 철저한 코드 리뷰나 힙 프로파일러 같은 디버깅 도구를 동원해야만 발견되기도 한다. 그래서 이런 종류의 문제는 예방법을 익혀두는 것이 매우 중요하다.
+
+
+
+___
+
+
+
+## 아이템 8: finalizer와 cleaner 사용을 피하라
+
+finalizer (java 8), cleaner (java 9)
+
+##### 사용하지 말아야 할 이유
+
+* finalizer는 예측할 수 없고, 상황에 따라 위험할 수 있어 일반적으로 불필요하다.
+* cleaner는 finalizer보다는 덜 위험하지만, 여전히 예측할 수 없고, 느리고, 일반적으로 불필요하다.
+* 즉시 수행된다는 보장이 없다. 즉, 제때 실행되어야 하는 작업은 절대 할 수 없다.
+* 자바 언어 명세는 finalizer나 cleaner의 수행 시점뿐 아니라 수행 여부조차 보장하지 않는다. 상태를 영구적으로 수정하는 작업에서는 finalizer나 cleaner에 의존해서는 안된다.
+* 심각한 성능 문제도 동반한다.
+* finalizer를 사용한 클래스는 finalizer 공격에 노출되어 심각한 보안 문제를 일으킬 수도 있다.
+
+##### 
+
+##### AutoCloseable을 사용하자.
+
+ AutoCloseable을 구현하고, 클라이언트에서 인스턴스를 다 쓰고나면 close를 호출하면 된다. (일반적으로 예외가 발생해도 제대로 종료되도록 try-with-resources를 사용해야한다.)
+ 각 인스턴스는 자신이 닫혔는지 추적하는 것이 좋다. close 메서드에서 이 객체는 더 이상 유효하지 않음을 필드에 기록하고 다른 메서드에서 이 필드를 검사하여 객체가 닫힌후 불렀다면 IllegalStateException을 던진다.
+
+
+
+##### 핵심정리
+
+> cleaner(자바 8까지는 finalizer)는 안전망 역할이나 중요하지 않는 네이티브 자원 회수 용으로만 사용하자. 물론 이런 경우라도 불확실성과 성능 저하에 주의해야 한다.
+
+
+
+___
+
+
+
+## 아이템 9: try-finally보다는 try-with-resources를 사용하라
+
+ 자바 라이브러리에는 close 메서드를 호출해 직접 닫아 줘야하는 자원이 많다. InputStream, OutputStream, java.sql.Connection 등이 좋은 예다. 
+
+##### 전통적인 자원이 제대로 닫힘을 보장하는 try-finally - 더 이상 자원을 회수하는 최선의 방책이 아니다.
+
+~~~java
+static String firstLineOfFile(String path) throws IOException {
+  	BufferedReader br = new BufferedReader(new FileReader(path));
+  	try {
+    	return br.readLine();
+  	} finally {
+  		br.close();
+		}
+}
+~~~
+
+나쁘지 않지만 자원을 하나 더 사용한다면?
+
+~~~java
+static void copy(String src, String dst) throws IOException {
+    InputStream in = new FileInputStream(src);
+   	try {
+            OutputStream out = new FileOutputStream(dst);
+    		try {
+            byte[] buf = new byte[BUFFER_SIZE];
+            int n;
+            while ((n = in.read(buf)) >= 0)
+        		out.write(buf, 0, n);
+        } finally {
+        		out.close();
+    		}
+    } finally {
+    		in.close();
+		}
+}
+~~~
+
+ 자원이 둘 이상이면 try-finally 방식은 너무 지저분하다.
+
+
+
+##### 해결책 try-with-resources를 사용하자
+
+ 이 구조를 사용하려면 해당 자원이 AutoCloseable 인터페이스를 구현해야 한다.
+
+~~~java
+public class AutoCloseableTest implements AutoCloseable {
+    @Override
+    public void close() throws Exception { // try-with-resources에서 자동 호출 된다.
+        System.out.println("close test");
+    }
+}
+~~~
+
+~~~java
+// try-with-resources - 자원을 회수하는 최선책! (48쪽)
+static String firstLineOfFile(String path) throws IOException {
+		try (BufferedReader br = new BufferedReader(
+    		new FileReader(path))) {
+        return br.readLine();
+    }
+}
+~~~
+
+ try-with-resources 버전이 짧고 읽기 수월할 뿐만 아니라 문제를 진단하기도 훨씬 좋다. 예외를 처리하기 위해 catch 절을 사용할 수 있다.
+
+~~~java
+static String firstLineOfFile(String path, String defaultVal) {
+		try (BufferedReader br = new BufferedReader(
+    		new FileReader(path))) {
+        return br.readLine();
+    } catch (IOException e) { // catch 절로 예외를 처리할 수 있다.
+        return defaultVal;
+    }
+}
+~~~
+
+##### 핵심정리
+
+> 꼭 회수해야 하는 자원을 다룰 때는 try-finally 말고, try-with-resources를 사용하자. 예외는 없다. 코드는 더 짧아지고 분명해지고, 만들어지는 예외 정보도 훨씬 유용하다. try-finally로 작성하면 실용적이지 못할 만큼 코드가 지저분해지는 경우라도, try-with-resources로는 쉽고 정확하게 자원을 회수할 수 있다.
+
+
+
+___
+
+2장 객채 생성과 파괴 끝
+
