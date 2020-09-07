@@ -123,7 +123,7 @@ key: 8
       }
   
       @Override 
-  		public boolean equals(Object o) {
+      public boolean equals(Object o) {
           if (!(o instanceof Point))
               return false;
           Point p = (Point)o;
