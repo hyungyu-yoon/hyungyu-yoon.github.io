@@ -160,7 +160,7 @@ key: 8
   }
   ~~~
 
-  이 메서드는 Point와 ColorPoint를 순서를 바꾸어서 비교를 할 때 그 결과가 다를 수 있다. Point의 equals는 색상을 무시하고 ColorPoint는 ColorPoint의 인스턴스가 아니므로 항상 false를 반환한다.
+  이 메서드는 Point와 ColorPoint를 순서를 바꾸어서 비교를 할 때 그 결과가 다를 수 있다. Point의 equals는 색상을 무시하고 ColorPoint의 equals는 Point를 ColorPoint의 인스턴스가 아니라고 판단하여 항상 false를 반환한다.
 
   ##### 위배 2 : ColorPoint의 equals가 Point와 비교할 때 색상을 무시하는 equals 
 
@@ -171,11 +171,11 @@ key: 8
       if (!(o instanceof Point))
           return false;
   
-  		// o가 일반 Point면 색상을 무시하고 비교한다.
-  		if (!(o instanceof ColorPoint))
-  				return o.equals(this);
+      // o가 일반 Point면 색상을 무시하고 비교한다.
+      if (!(o instanceof ColorPoint))
+  	  return o.equals(this);
   
-  		// o가 ColorPoint면 색상까지 비교한다.
+      // o가 ColorPoint면 색상까지 비교한다.
       return super.equals(o) && ((ColorPoint) o).color == color;
   }
   ~~~
