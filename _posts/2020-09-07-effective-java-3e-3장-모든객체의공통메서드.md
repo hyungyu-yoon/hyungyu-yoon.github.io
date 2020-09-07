@@ -417,7 +417,7 @@ hashCode를 구현하였다면 동치인 인스턴스에 대해 동일한 hashCo
 ~~~java
 @Override 
 public int hashCode() {
-		return Objects.hash(lineNum, prefix, areaCode);
+	return Objects.hash(lineNum, prefix, areaCode);
 }
 ~~~
 
@@ -431,7 +431,7 @@ private int hashCode; // 자동으로 0으로 초기화된다.
 
 @Override 
 public int hashCode() {
-		int result = hashCode;
+    int result = hashCode;
     if (result == 0) {
 	    result = Short.hashCode(areaCode);
       result = 31 * result + Short.hashCode(prefix);
@@ -598,7 +598,7 @@ ex) 잘못된 clone - 가변 상태를 공유한다.
 ~~~java
 @Override
 public HashTable clone() {
-		try {
+    try {
       HashTable result = (HashTable) super.clone();
       result.buckets = buckets.clone();
       return result;
@@ -615,16 +615,16 @@ buckets의 배열은 clone으로 복사를 하지만 원본의 연결리스트�
 ~~~java
 // 엔트리 자신이 가리키는 연결 리스트를 반복적으로 복사한다.
 Entry deeCopy(){
-		Entry result = new Entry(key, value, next);
-		for(Entry p = result; p.next != null; p = p.next){
-				p.next = new Entry(p.next.key, p.next.value, p.next.next);
-		}
-		return result;
+	Entry result = new Entry(key, value, next);
+	for(Entry p = result; p.next != null; p = p.next){
+		p.next = new Entry(p.next.key, p.next.value, p.next.next);
+	}
+	return result;
 }
 
 @Override
 public HashTable clone() {
-		try {
+    try {
       HashTable result = (HashTable) super.clone();// 객체의 모든 필드를 복사
       result.buckets = new Entry[buckets.length];  // 새로운 버킷 배열로 초기화
       for(int i = 0; i < buckets.length; i++){     // 엔트리 깊은 복사 진행
@@ -660,7 +660,7 @@ clone을 동작하지 않게 구현해놓고 하위 클래스에서 재정의하
 ~~~java
 @Override
 protected final Object clone() throws CloneNotSupportedException {
-		throw new CloneNotSupportedException();
+	throw new CloneNotSupportedException();
 }
 ~~~
 
@@ -797,9 +797,9 @@ o1 < o2 이면 음수 반환, o1 > o2 이면 양수 반환, o1 == o2 이면 0을
 
 ~~~java
 static Comparator<Object> hashCodeOrder = new Comparator<>() {
-		public int compare(Object o1, Object o2){
-				return o1.hashCode() - o2.hashCode();
-		}
+	public int compare(Object o1, Object o2){
+		return o1.hashCode() - o2.hashCode();
+	}
 }
 ~~~
 
@@ -810,9 +810,9 @@ static Comparator<Object> hashCodeOrder = new Comparator<>() {
 ~~~java
 // 정적 compare 메서드를 활용한 비교자를 사용하자
 static Comparator<Object> hashCodeOrder = new Comparator<>() {
-		public int compare(Object o1, Object o2){
-				return Integer.compare(o1.hashCode(), o2.hashCode());
-		}
+	public int compare(Object o1, Object o2){
+		return Integer.compare(o1.hashCode(), o2.hashCode());
+	}
 }
 ~~~
 
