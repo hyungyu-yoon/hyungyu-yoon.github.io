@@ -602,7 +602,7 @@ public HashTable clone() {
       result.buckets = buckets.clone();
       return result;
     } catch(CloneNotSupportedException e) {
-      throw new Assertion();
+      throw new AssertionError();
     }
 }
 ~~~
@@ -613,7 +613,7 @@ buckets의 배열은 clone으로 복사를 하지만 원본의 연결리스트�
 
 ~~~java
 // 엔트리 자신이 가리키는 연결 리스트를 반복적으로 복사한다.
-Entry deeCopy(){
+Entry deepCopy(){
 	Entry result = new Entry(key, value, next);
 	for(Entry p = result; p.next != null; p = p.next){
 		p.next = new Entry(p.next.key, p.next.value, p.next.next);
@@ -633,7 +633,7 @@ public HashTable clone() {
       }
       return result;
     } catch(CloneNotSupportedException e) {
-      throw new Assertion();
+      throw new AssertionError();
     }
 }
 ~~~
