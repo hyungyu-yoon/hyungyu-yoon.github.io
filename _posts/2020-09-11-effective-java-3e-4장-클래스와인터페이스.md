@@ -930,5 +930,3 @@ javac Desert.java Main.java 명령은 potpie 를 출력한다.
 ___
 
 4장 클래스와 인터페이스 끝
-
-## 아이템 16: public 클래스에서는 public 필드가 아닌 접근자 메서드를 사용하라
