@@ -355,12 +355,15 @@ ___
 
 ##### 상속을 고려한 설계와 문서화
 
-* 있는 상속용 클래스는 재정의할 수 있는 메서드들을 내부적으로 어떻게 이용하는지 문서로 남겨야 한다. public과 protected 중에 final이 아닌 모든 재정의 가능 메서드를 호출할 수 있는 상황을 문서로 남기자.
+* 상속용 클래스는 재정의할 수 있는 메서드들을 내부적으로 어떻게 이용하는지 문서로 남겨야 한다. public과 protected 중에 final이 아닌 모든 재정의 가능 메서드를 호출할 수 있는 상황을 문서로 남기자.
 
 * 좋은 API 문서란 어떻게가 아닌 무엇을 하는지 설명해야 하지만, 상속이 캡슐화를 해치기 클래스를 안전하게 상속할 수 있도록 내부 구현 방식을 설명해야 한다.
 
-* 메서드 주석에 @implSpec 태그를 붙이면 내부 동작을 설명하는 곳으로 'implementation Requirements'을 붙여준다. 
-  이 태그를 활성화 하기 위해서는 -tag "impleSpec:Implementation Requirements:"를 지정해야 한다.
+* 메서드 주석에 @implSpec 태그를 붙이면 내부 동작을 설명하는 곳으로 'Implementation Requirements'을 붙여준다. 
+  이 태그를 활성화 하기 위해서는 javadoc 명령에서 -tag 옵션을 지정해야 한다.
+  ~~~shell
+  ~> Javadoc -tag "implSpec:a:Implementation Requirements:" *.java
+  ~~~
 
 * 효율적인 하위 클래스를 큰 어려움 없이 만들 수 있게 하려면 클래스의 내부 동작 과정 중간에 끼어들 수 있는 훅(hook)을 잘 선별하여 protected 메서드 형태로 공개해야 할 수도 있다.
 
