@@ -109,7 +109,7 @@ private static void unsafeAdd(List list, Object o) {
 ###### <span style="color:blue;">컴파일타임 실패 - unsafeAdd 메서드를 List\<Object\>로 변경</span>
 
 ~~~java
-private static void unsafeAdd(List list<Object>, Object o) {
+private static void unsafeAdd(List<Object> list, Object o) {
     list.add(o);
 }
 ~~~
