@@ -106,7 +106,7 @@ private static void unsafeAdd(List list, Object o) {
 
 이 프로그램을 실행하면 strings.get(0) 의 결과를 형변환하려 할 때 ClassCastException을 던진다.
 
-###### <span style="color:red;">런타임 실패 - unsafeAdd 메서드를 List\<Object\>로 변경</span>
+###### <span style="color:blue;">컴파일타임 실패 - unsafeAdd 메서드를 List\<Object\>로 변경</span>
 
 ~~~java
 private static void unsafeAdd(List list<Object>, Object o) {
