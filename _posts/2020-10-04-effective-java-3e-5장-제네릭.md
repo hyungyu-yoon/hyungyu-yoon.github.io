@@ -416,7 +416,7 @@ public class Stack<E> {
    // 따라서 타입 안정성은 보장하지만, 이 배열의 런타임 타입은 E[]가 아닌 Object[]다!
    @SuppressWarnings("unchecked")
    public Stack() {
-   		elements = new E[DEFAULT_INITIAL_CAPACITY]; // 오류 발생
+       elements = (E[]) new Object[DEFAULT_INITIAL_CAPACITY];
    }
    ~~~
 
@@ -427,14 +427,14 @@ public class Stack<E> {
 
    ~~~java
    public E pop() {
-   		if (size == 0)
-       		throw new EmptyStackException();
+       if (size == 0)
+           throw new EmptyStackException();
        
        // push에서 E 타입만 허용하므로 이 형변환은 안전하다.
        @SuppressWarnings("unchecked") E result = (E) elements[--size];
        
        elements[size] = null; // 다 쓴 참조 해제
-   		return result;
+       return result;
    }
    ~~~
 
@@ -529,7 +529,7 @@ IDENTY_FN을 UnaryOperator\<T\>로 형변환하면 비검사 형변환 경고가
 
 ~~~java
 public interface Comparable<T> {
-		int compareTo(T o);
+	int compareTo(T o);
 }
 ~~~
 
@@ -601,10 +601,10 @@ ___
 
 ~~~java
 public class Stack<E> {
-		public Stack();
-		public void push(E e);
-		public E pop();
-		public boolean isEmpty();
+	public Stack();
+	public void push(E e);
+	public E pop();
+	public boolean isEmpty();
 }
 ~~~
 
@@ -614,8 +614,8 @@ public class Stack<E> {
 
 ~~~java
 public void pushAll(Iterable<E> src){
-		for(E e : src)
-				push(e);
+	for(E e : src)
+		push(e);
 }
 ~~~
 
