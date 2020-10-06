@@ -667,8 +667,8 @@ popAll의 입력 매개변수의 타입이 'E의 Collection' 이 아니라 'E의
 
 ~~~java
 public void popAll(Collection<? spuer E> dst) {
-		while(!isEmpty())
-				dst.add(pop());
+    while(!isEmpty())
+        dst.add(pop());
 }
 ~~~
 
