@@ -619,8 +619,8 @@ public class Stack<E> {
 
 ~~~java
 public void pushAll(Iterable<E> src){
-	for(E e : src)
-		push(e);
+    for(E e : src)
+        push(e);
 }
 ~~~
 
@@ -637,8 +637,8 @@ pushAll의 입력 매개변수 타입은 'E의 Iterable' 이 아니라 'E의 하
 
 ~~~java
 public void pushAll(Iterable<? extends E> src){
-		for(E e : src)
-				push(e);
+    for(E e : src)
+        push(e);
 }
 ~~~
 
@@ -648,8 +648,8 @@ Stack과 클라이언트 모두 깔끔히 컴파일이 될 것이고 모든 것�
 
 ~~~java
 public void popAll(Collection<E> dst) {
-		while(!isEmpty())
-				dst.add(pop());
+    while(!isEmpty())
+        dst.add(pop());
 }
 ~~~
 
@@ -740,7 +740,7 @@ public static void swap(List<?> list, int i, int j);     // 두 번째 swap
 
 ~~~java
 public static void swap(List<?> list, int i, int j) {
-		list.set(i, list.set(j, list.get(i)));
+    list.set(i, list.set(j, list.get(i)));
 }
 ~~~
 
@@ -844,7 +844,7 @@ static void dangerous(List<String>... stringLists) {
 
   ~~~java
   static <T> T[] toArray(T... args){
-  		return args;
+      return args;
   }
   ~~~
 
@@ -1063,7 +1063,7 @@ cast 메서드를 사용하는 이유는 Class 클래스가 제네릭이라는 �
 
 ~~~java
 public Class<T> {
-		T cast(Object obj);
+    T cast(Object obj);
 }
 ~~~
 
