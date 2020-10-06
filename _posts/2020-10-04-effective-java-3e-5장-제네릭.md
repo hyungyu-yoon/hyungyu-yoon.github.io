@@ -699,7 +699,7 @@ Chooser\<Number\> 의 생성자에 List\<Integer\> 를 넘기려고 할 때 수�
 
 ~~~java
 public static <E> Set<E> union(Set<E> s1, Set<E> s2) // 수정 전
-public static <E> Set<E> union(Set<? extemds e> s1, Set<? extends E> s2) // 수정 후
+public static <E> Set<E> union(Set<? extemds E> s1, Set<? extends E> s2) // 수정 후
 ~~~
 
 > 반환 타입에는 한정적 와일드카드 타입을 사용하면 안된다.
@@ -725,7 +725,7 @@ public static <E extends Comparable<? super E>> E max(List<? extends E> list) //
 
 
 
-##### 메서드 선언에 타입 매개변수가 한 번만 나오면 와일드카도르 대체하라
+##### 메서드 선언에 타입 매개변수가 한 번만 나오면 와일드카드 대체하라
 
 비한정적 타입 매개변수라면 비한정적 와일드카드로 바꾸고, 한정적 타입 매개변수라면 한정적 와일드카드로 바꾼다.
 
