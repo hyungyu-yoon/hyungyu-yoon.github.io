@@ -838,7 +838,7 @@ static void dangerous(List<String>... stringLists) {
 
 * varargs 매개변수 배열이 호출자로부터 그 메서드로 순수하게 인수들을 전달하는 일만 한다면 그 메서드는 안전하다.
 
-* ##### <span style="color:red">varargs 매개변수 배열에 아무것도 저장하지 않고도 타입 안저엉을 깰 수 있는 경우</span>
+* ##### <span style="color:red">varargs 매개변수 배열에 아무것도 저장하지 않고도 타입 안정성을 깰 수 있는 경우</span>
 
   자신의 제네릭 매개변수 배열의 참조를 노출한다 - 안전하지 않다
 
