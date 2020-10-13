@@ -1,5 +1,5 @@
 ---
-title: effective java 3/E - 5장. 제네릭
+title: effective java 3/E - 6장. 열거 타입과 애너테이션
 tags: 
  - Java
 key: 11
