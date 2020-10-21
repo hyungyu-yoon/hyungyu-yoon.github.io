@@ -789,7 +789,7 @@ for (ProcessHandle ph : (Iterable<ProcessHandle>) ProcessHandle.allProcesses()::
 }
 ~~~
 
-동장은 하지만 직접 형변환을 해야 하기 때문에 난잡하고 직관성이 떨어진다.
+동은 하지만 직접 형변환을 해야 하기 때문에 난잡하고 직관성이 떨어진다.
 
 ##### Stream\<E\> 를 Iterable\<E\>로 중개해주는 어댑터 - 자바의 타입 추론이 문맥을 잘 파악하여 따로 형변환하지 않아도 된다.
 
