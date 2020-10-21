@@ -84,7 +84,7 @@ public enum Operation {
         return op.applyAsDouble(x, y);
     }
 
-    // 아이템 34의 메인 메서드 (215쪽)
+    // 아이템 34의 메인 메서드
     public static void main(String[] args) {
         double x = Double.parseDouble(args[0]);
         double y = Double.parseDouble(args[1]);
