@@ -44,7 +44,7 @@ Comparator 인터페이스가 정렬을 담당하는 추상 전략을 뜻하며,
 Collections.sort(words, (s1, s2) -> Integer.compare(s1.length(), s2.length()));
 ~~~
 
-* 람다 매개변수 s1, s2 의 반환 값의 타입은 각각 (Comparator\<String\>), String, int 지만 코드에는 언급이 없다. 
+* 람다 매개변수 s1, s2와 반환 값의 타입은 각각 (Comparator\<String\>), String, int 지만 코드에는 언급이 없다. 
 * 컴파일러가 문맥을 보고 타입을 추론해준다.
 * 컴파일러가 타입을 결정하지 못할 때는 직접 명시해야 한다.
 * **타입을 명시해야 코드가 더 명확할 때만 제외하고, 람다의 모든 매개변수 타입은 생략하자**
