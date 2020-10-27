@@ -1,5 +1,5 @@
 ---
-title: effective java 3/E - 8장. 
+title: effective java 3/E - 8장. 메서드
 tags: 
  - Java
 key: 13
