@@ -1,5 +1,5 @@
 ---
-title: effective java 3/E - 7장. 람다와 스트림
+title: effective java 3/E - 8장. 
 tags: 
  - Java
 key: 13
