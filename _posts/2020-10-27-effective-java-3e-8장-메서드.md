@@ -620,7 +620,7 @@ priavate final List<Cheese> cheesesInStock = ...;
  * @return 매장 안의 모든 치즈 목록을 반환한다.
  *     단, 재고가 하나도 없다면 null을 반환한다.
  */
-public List<Cheese> get Cheeses() {
+public List<Cheese> getCheeses() {
     return cheesesInStock.isEmpty() ? null
         : new ArrayList<>(cheesesInStock); 
 }
