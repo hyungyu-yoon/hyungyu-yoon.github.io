@@ -135,7 +135,16 @@ ___
   }
   ~~~
 
-  * 하지만 이 경우라도 동기화를 적용하지 않았을 때 동작이 제대로 하지 않을 수 있다.
+  * ##### 하지만 이 경우라도 동기화를 적용하지 않았을 때 동작이 제대로 하지 않을 수 있다.
+  ~~~java
+   private static volatile int nextSerialNumber = 0;
+   
+   public static int generateSerialNumber() {
+       return nextSerialNumber++;
+   }
+  ~~~
+  
+  * nextSerialNumber++ 는 nextSerialNumber = nextSerialNumber + 1 과 같으므로 값을 읽고 쓰기 위해 두 번 접근한다. 그 사이에 값을 읽어 잘못된 계산을 할 수 있다.
 
 * java.util.concurrent.atomic 패키지의 AtomicLong 을 사용하는 방법도 있다.
   이 패키지에는 락 없이도 스레드 안전한 프로그래밍을 지원하는 클래스들이 있다.
