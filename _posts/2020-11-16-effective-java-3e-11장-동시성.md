@@ -136,6 +136,7 @@ ___
   ~~~
 
   * ##### 하지만 이 경우라도 동기화를 적용하지 않았을 때 동작이 제대로 하지 않을 수 있다.
+  
   ~~~java
    private static volatile int nextSerialNumber = 0;
    
