@@ -385,7 +385,7 @@ java util은 첫 번째 방식을 취했고, java.util.concurrent는 두 번째 
 
 * java.util.Random은 동기화 되지 않은 버전인 java.util.concurrent.ThreadLocalRandom으로 대체되었다.
 
-##### 
+
 
 ##### 핵심 정리
 
