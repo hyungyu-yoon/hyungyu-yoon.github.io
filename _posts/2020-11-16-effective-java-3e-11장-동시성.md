@@ -422,7 +422,7 @@ exec.shutdown();
 ##### 실행자 서비스의 주요 기능
 
 * 특정 태스크가 완료되기를 기다린다.
-* 태스크 모음 중 아무것도 하나(invokeAny 메서드) 혹은 모든 태스크(invokeAll 메서드)가 완료되기를 기다린다.
+* 태스크 모음 중 아무것 하나(invokeAny 메서드) 혹은 모든 태스크(invokeAll 메서드)가 완료되기를 기다린다.
 * 실행자 서비스가 종료하기를 기다린다(awaitTermination 메서드).
 * 완료된 태스크들의 결과를 차례로 받는다(ExecutorCompletionService 이용).
 * 태스크를 특정 시간에 혹은 주기적으로 실행하게 한다(ScheduledThreadPoolExecutor 이용).
