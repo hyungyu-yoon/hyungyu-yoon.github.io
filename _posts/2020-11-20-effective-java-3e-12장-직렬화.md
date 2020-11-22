@@ -4,6 +4,7 @@ tags:
  - Java
 key: 17
 
+
 ---
 
 
@@ -188,4 +189,306 @@ ___
   }
   ~~~
 
+  * 기존의 직렬화 가능 클래스에 직렬화 가능 상위클래스를 추가하는 두문 경우를 위한 메서드
+
+##### Serializable을 구현하지 않기로 할 때는 한 가지만 주의하자.
+
+* 상속용 클래스인데 직렬화를 지원하지 않으면 그 하위 클래스에서 직렬화를 지원하려할 때 부담이 늘어난다.
+* 보통 이런 클래스를 역직렬화하려면 그 상위 클래스는 매개변수 없는 생성자를 제공해야 하는데, 이런 생성자를 제공하지 않으려면 하위 클래스에서 어쩔 수 없이 직렬화 프록시 패턴을 사용해야 한다.
+
+##### 내부 클래스는 직렬화를 구현하지 말아야 한다.
+
+* 내부 클래스에는 바깥 인스턴스의 참조와 유효 범위 안의 지역변수 값들을 저장하기 위해 컴파일러가 생성한 필드들이 자동으로 추가된다.
+* 다시 말해, 내부 클래스에 대한 기본 젹렬화 형태는 분명하지 않다.
+
+
+
+##### 핵심 정리
+
+> Serializable은 구현한다고 선언하기는 아주 쉽지만, 그것은 눈속임일 뿐이다. 한 클래스의 여러 버전이 상호작용할 일이 없고 서버가 신뢰할 수 없는 데이터에 노출될 가능성이 없는 등, 보호된 환경에서만 쓰일 클래스가 아니라면 Serializable 구현은 아주 신중하게 이뤄져야 한다. 상속할 수 있는 클래스라면 주의사항이 더욱 많아진다.
+
+
+
+___
+
+
+
+## 아이템 87: 커스텀 직렬화 형태를 고려해보라
+
+클래스가 Serializable을 구현하고 기본 직렬화 형태를 사용한다면 현재 구현에 영원히 발이 묶이게 된다.
+
+##### 먼저 고민해보고 괜찮다고 판단될 때만 기본 직렬화 형태를 사용하라.
+
+* 기본 직렬화 형태는 유연성, 성능, 정확성 측면에서 신중히 고민한 후 합당할 때만 사용해야 한다.
+* 직접 설계하더라도 기본 직렬화 형태와 거의 같은 결과가 나올 경우에만 기본 형태를 써야 한다.
+* 어떤 객체의 직렬화 형태는 객체가 포함된 데이터들과 그 객체에서부터 시작해 접근할 수 있는 모든 객체를 담아내며, 심지어 이 객체들이 연결된 위상(topology)까지 기술한다.
+* 그러나 이상적인 직렬화 형태라면 물리적인 모습과 독립된 논리적인 모습만 표현해야 한다.
+
+##### 객체의 물리적 표현과 논리적 내용이 같다면 기본 직렬화 형태라도 무방하다.
+
+###### 기본 직렬화 형태에 적합한 후보 - 사람의 성명을 간략히 표현한 예제
+
+~~~java
+public class Name implements Serializable {
+    /**
+     * 성. null이 아니어야 함.
+     * @serial
+     */
+    private final String lastName;
+    
+    /**
+     * 이름. null이 아니어야 함.
+     * @serial
+     */
+    private final String firstName;
+    
+    /**
+     * 중간이름. 중간이름이 없다면 null.
+     * @serial
+     */
+    private final String middleName;
+    
+    ... // 나머지 코드는 생략
+}
+~~~
+
+* 성명은 이름, 성, 중간이름의 3개의 문자열로 구성되며, 인스턴스 필드는 이 논리적 구성요소를 정확히 반영했다.
+
+* ##### 기본 직렬화 형태가 적합하다고 결정했더라도 불변식 보장과 보안을 위해 readObject 메서드를 제공해야 할 때가 많다.
+
+  ex) Name 클래스의 readObject 메서드가 lastName과 firstName이 null이 아님을 보장해야 한다.
+
+###### 기본 직렬화 형태에 적합하지 않은 클래스 - 문자열 리스트를 표현하는 예제
+
+~~~java
+public final class StringList implements Serializable {
+    private int size = 0;
+    private Entry head = null;
+    
+    private static class Entry implements Serializable {
+        String data;
+        Entry next;
+        Entry previous;
+    }
+    
+    ...//
+}
+~~~
+
+* 논리적으로는 이 클래스는 일련의 문자열을 표현한다.
+* 물리적으로는 문자열들을 이중 연결 리스트로 연결했다.
+* 이 클래스에 기본 직렬화 형태를 사용하면 각 노드의 양방향 연결 정보를 포함해 모든 엔트리를 철두철미하게 기록한다.
+
+##### 객체의 물리적 표햔과 논리적 표현의 차이가 클 때 기본 직렬화 형태를 사용하면 크게 네 가지 면에서 문제가 생긴다.
+
+1. ##### 공개 API가 현재의 내부 표현 방식에 영구히 묶인다.
+
+   앞의 예에서 StringList.Entry가 공개 API가 되어 버린다. 내부 표현 방식이 바뀌더라도 여전히 연결리스트로 표현된 입력도 처리할 수 있어야 하기 때문에 관련 코드를 절때 제거할 수 없다.
+
+2. ##### 너무 많은 공간을 차지할 수 있다.
+
+   앞의 예에서 직렬화 형태는 연결 리스트의 모든 엔트리 연결 정보까지 기록했다. 직렬화 형태가 너무 커져서 디스크에 저장하거나 네트워크로 전송하는 속도가 느려진다.
+
+3. ##### 시간이 너무 많이 걸릴 수 있다.
+
+   직렬화 로직은 객체 그래프의 위상에 관한 정보가 없으니 그래프를 직접 순회해볼 수밖에 없다.
+
+4. ##### 스택 오버플로우를 일으킬 수 있다.
+
+   기본 직렬화 과정은 객체 그래프를 재귀 순회하는데, 이 작업은 중간 정도의 크기 객체 그래프에서도 자칫 스택 오버플로우를 일으킬 수 있다.
+
+##### StringList를 위한 합리적인 직렬화 형태는 무엇일까?
+
+* 단순히 리스트가 포함한 문자열의 개수를 적은 다음, 그 뒤로 문자열들을 나열하는 수준이면 될 것이다.
+* StringList의 물리적은 상세 표현은 배재한 채 논리적인 구성만 담는 것이다.
+
+###### 합리적인 커스텀 직렬화 형태를 갖춘 StringList
+
+~~~java
+public final class StringList implements Serializable {
+    private transient int size   = 0;
+    private transient Entry head = null;
+
+    // 이제는 직렬화되지 않는다.
+    private static class Entry {
+        String data;
+        Entry  next;
+        Entry  previous;
+    }
+
+    // 지정한 문자열을 이 리스트에 추가한다.
+    public final void add(String s) {  }
+
+    /**
+     * 이 {@code StringList} 인스턴스를 직렬화한다.
+     *
+     * @serialData 이 리스트의 크기(포함된 문자열의 개수)를 기록한 후
+     * ({@code int}), 이어서 모든 원소를(각각은 {@code String})
+     * 순서대로 기록한다.
+     */
+    private void writeObject(ObjectOutputStream s)
+            throws IOException {
+        s.defaultWriteObject();
+        s.writeInt(size);
+
+        // 모든 원소를 올바른 순서로 기록한다.
+        for (Entry e = head; e != null; e = e.next)
+            s.writeObject(e.data);
+    }
+
+    private void readObject(ObjectInputStream s)
+            throws IOException, ClassNotFoundException {
+        s.defaultReadObject();
+        int numElements = s.readInt();
+
+        // 모든 원소를 읽어 이 리스트에 삽입한다.
+        for (int i = 0; i < numElements; i++)
+            add((String) s.readObject());
+    }
+
+    // 나머지 코드는 생략
+}
+~~~
+
+* writeObject와 readObject가 직렬화 형태를 처리한다.
+* transient는 해당 인스턴스 필드가 기본 직렬화 형태에 포함되지 않는 다는 표시이다.
+* writeObject와 readObject는 각각 가장 먼저 defaultWriteObject와 defaultReadObject를 호출해야 한다.
+
+##### transient로 선언해도 되는 인스턴스 필드는 모두 붙여야 한다.
+
+* 캐시된 해시 값처럼 다른 필드에서 유도되는 필드도 여기 해당한다.
+
+* JVM을 실행할 때마다 값이 달라지는 필드인 long 필드도 여기에 속한다.
+
+* ##### 해당 객체의 논리적 상태와 무관한 필드라고 확신할 때만 생략해야 한다.
+
+##### 기본 직렬화를 사용한다면 transient 필드들은 역직렬화될 때 기본값으로 초기화 됨을 잊지 말자.
+
+* 기본값을 그대로 사용하면 안 된다면 readObject에서 defaultReadObject를 호출한 다음, 해당 필드를 원하는 값으로 복원하자.
+* 혹은 그 값을 처음 사용할 때 초기화 하는 방법도 있다.
+
+##### 객체의 전체 상태를 읽는 메서드에 적용해야 하는 동기화 메커니즘을 직렬화에도 적용해야 한다.
+
+* 메서드를 syncronized로 선언하여 스레드 안전하게 만든 객체에서 기본 직렬화를 사용한다면 writeObject도 syncronized를 선언해야 한다.
+
+  ~~~java
+  private syncronized void writeObject(ObjectOutputStream s) throws IOException {
+      s.defaultWriteObject();
+  }
+  ~~~
+
+##### 어떤 직렬화 형태를 택하든 직렬화 가능 클래스 클래스 모두에 직렬 버전 UID를 명시적으로 부여하자.
+
+* 직렬 버전 UID가 일으키는 잠재적인 호환성 문제가 사라진다.
+* 성능도 조금 빨라질 수 있다.
+* 구버전으로 직렬화된 인스턴스들과의 호환성을 끊으려는 경우를 제외하고는 직렬 버전 UID를 절대 수정하지 말자.
+
+
+
+##### 핵심 정리
+
+> 클래스를 직렬화하기로 했다면 어떤 직렬화 형태를 사용할지 심사숙고하기 바란다. 자바의 기본 직렬화 형태는 객체를 직렬화한 결과가 해당 객체의 논리적 표현에 부합할 때만 사용하고, 그렇지 않으면 객체를 적절히 설명하는 커스텀 직렬화 형태를 고안하라. 직렬화 형태도 공개 메서드를 설계할 때에 준하는 시간을 들여 설계해야 한다. 한번 공개된 메서드는 향후 릴리스에서 제거할 수 없듯이, 직렬화 형태에 포함된 필드도 마음대로 제거할 수 없다. 직렬화 호환성을 유지하기 위해 영원히 지원해야 하는 것이다. 잘못된 직렬화 형태를 선택하면 해당 클래스의 복잡성과 성능에 영구히 부정적인 영향을 남긴다.
+
+
+
+___
+
+
+
+## 아이템 88: readObject 메서드는 방어적으로 작성하라
+
+##### 방어적 복사를 사용하는 불변 클래스
+
+~~~java
+public final class Period {
+    private final Date start;
+    private final Date end;
+    
+    public Period(Date start, Date end){
+        this.start = new Date(start.getTime());
+        this.end = new Date(end.getTime());
+        if(this.start.comparTo(this.end) > 0) {
+            throw new IllegalArgumentException(
+                    start + "가 " + end "보다 늦다.");
+        }
+    }
   
+    public Date start() { return new Date(start.getTime());}
+    public Date end() { return new Date(end.getTime());}
+    public String toString() {return start + " - " + end;}
+}
+~~~
+
+* 이 클래스에 Serializable을 구현하는 것으로 직렬화를 할 수 있을 것 같다.
+* 하지만 이렇게 해서는 이 클래스의 주요한 불변식은 더는 보장하지 못한다.
+* 문제는 readObject 메서드가 실질적으로 또 다른 public 생성자 역할을 하기 때문이다.
+* readObject에서도 보통의 생성자 처럼 메서드가 유효한지 검사해야 하고, 필요하다면 방어적 복사해야 한다.
+* 이 작업을 하지 않는 다면 공격자는 손쉽게 해당 클래스의 불변식을 깨뜨릴 수 있다.
+
+##### Period readObject 메서드가 defaultReadObject를 호출한 다음 역직렬화된 객체가 유효한지 검사해야 한다.
+
+* 유효성 검사에 실패하면 InvalidObjectException을 던진다.
+
+  ##### 유효성 검사를 수행하는 readObject 메서드 - 아직 부족하다.
+
+  ~~~java
+  private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
+      s.defaultReadObject();
+      
+      if(start.compareTo(end) > 0) {
+          throw new InvalidObjectException(start + "가 " + end + "보다 늦다.");
+      }
+  }
+  ~~~
+
+  * 이 코드는 공격자가 허용되지 않는 Period 인스턴스를 생성하는 것은 막을 수 있지만, 미묘한 문제가 있다.
+
+* 정상 Period 인스턴스에서 시작된 바이트 스트림 끝에 private Date 필드로의 참조를 추가하면 가변 Period 인스턴스를 만들어 낼 수 있다.
+
+##### 객체를 역직렬화할 때는 클라이언트가 소유해서는 안 되는 객체 참조를 갖는 필드를 모두 방어적으로 복사해야한다.
+
+* readObject에서는 불변 클래스 안의 모든 private 가변 요소를 방어적으로 복사해야 한다.
+
+  ##### 방어적 복사와 유효성 검사를 수행하는 readObject 메서드
+
+  ~~~java
+  private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
+      s.defaultReadObject();
+      
+      start = new Date(start.getTime());
+      end = new Date(end.getTime());
+      
+      if(start.compareTo(end) > 0) {
+          throw new InvalidObjectException(start + "가 " + end + "보다 늦다.");
+      }
+  }
+  ~~~
+
+  * final 필드는 방어적 복사가 불가능 하므로 readObject에서 사용하기 위해 필드의 final 을 제거해야 한다.
+
+##### 기본 readObject 메서드를 써도 좋을지 판단하는 방법
+
+* transient 필드를 제외한 모든 필드의 값을 매개변수로 받아 유효성 검사 없이 필드에 대입하는 public 생성자를 추가해도 좋은가?
+
+  답이 "아니오" 라면 커스텀 readObject를 만들고 유효성 검사와 방어적 복사를 해야 한다.
+  혹은 직렬화 프록시 패턴을 사용하는 방법도 있다.
+
+
+
+##### 핵심 정리
+
+> readObject 메서드를 작성할 때는 언제나 public 생성자를 작성하는 자세로 임해야 한다. readObject는 어떤 바이트 스트림이 넘어오더라도 유효한 인스턴스를 만들어내야 한다. 바이트 스트림이 진짜 직렬화된 인스턴스라고 가정해서는 안 된다. 이번 아이템에서는 기본 직렬화 형태를 사용한 클래스를 예로 들었지만 커스텀 직렬화를 사용하더라도 모든 문제가 그대로 발생할 수 있다. 이어서 안전한 readObject 메서드를 작성하는 지침을 요약해 보았다.
+>
+> * private이어야 하는 객체 참조 필드는 각 필드가 가리키는 객체를 방어적으로 복사하라. 불변 클래스 내의 가변 요소가 여기에 속한다.
+> * 모든 불변식을 검사하여 어긋나는 게 발견되면 InvalidObjectException을 던진다. 방어적 복사 다음에는 반드시 불변식 검사가 뒤따라야 한다.
+> * 역직렬화 후 객체 그래프 전체의 유효성을 검사해야 한다면 ObjectInputValidation 인터페이스를 사용하라.
+> * 직접적이든 간접적이든, 재정의할 수 있는 메서드는 호출하지 말자.
+
+
+
+___
+
+
+
+## 아이템 89: 인스턴스 수를 통제해야 한다면 readResolve 보다는 열거 타입을 사용하라
+
