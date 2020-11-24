@@ -492,3 +492,190 @@ ___
 
 ## 아이템 89: 인스턴스 수를 통제해야 한다면 readResolve 보다는 열거 타입을 사용하라
 
+##### 아이템 3의 싱글턴 패턴 클래스
+
+~~~java
+public class Elvis {
+    public static final Elvis INSTANCE = new Elvis();
+    private Elvis() { ... }
+    
+    public void leaveTheBuilding() { ... }
+}
+~~~
+
+* 이 클래스는 Serializable을 구현하면 더 이상 싱글턴이 아니게 된다.
+
+* 기본 직렬화를 쓰지 않았고, 명시적인 readObject를 제공하더라도 초기화할 때 만들어진 인스턴스와 별개인 인스턴스를 반환한다.
+
+* Serializable을 구현하고 readResolve 메서드를 추가하면 싱글턴 속성을 유지할 수 있다.
+
+  ~~~java
+  private Object readResolve() {
+      return INSTANCE;
+  }
+  ~~~
+
+  * 역직렬화된 객체는 무시하고 초기에 만들어진 인스턴스를 반환한다.
+
+  * Elvis의 직렬화 데이터는 아무런 실 데이터를 가질 이유가 없으니 모든 필드를 transient로 선언해야 한다.
+
+  * ##### readResolve를 인스턴스 통제 목적으로 사용한다면 객체 참조 타입 인스턴스 필드는 모두 transient로 선언해야 한다.
+
+  * 그렇지 않으면 잘 조작된 스트림을 써서 해당 참조 필드의 내용이 역직렬화되는 시점에 그 역직렬화된 인스턴스의 참조를 훔쳐올 수 있다.
+
+##### 싱글턴 클래스를 원소 하나짜리 열거 타입으로 바꾸는 편이 더 나은 선택이다.
+
+~~~java
+public enun Elvis {
+    INSTANE;
+    ...
+}
+~~~
+
+* 직렬화 가능한 인스턴스 통제 클래스를 열거 타입을 이용해 구현하면 선언한 상수 외에 다른 객체는 존재하지 않음을 자바가 보장해준다.
+* 전통적인 싱글턴보다 우수하다.
+
+##### readResolve 사용하는 방식이 쓸모없는 것은 아니다.
+
+* 컴파일타임에 어떤 인스턴스들이 있는지 알 수 없는 상황이라면 열거 타입으로 표현하는 것이 불가능하다.
+
+##### readResolve의 접근성은 매우 중요하다.
+
+* final 클래스라면 private 이어야 한다.
+
+  private로 선언하면 하위 클래스에서 사용할 수 없다.
+
+* package-private로 선언하면 같은 패키지에 속한 하위 클래스에서만 사용할 수 있다.
+
+* protected나 public으로 선언하면 이를 재정의하지 않은 모든 하위 클래스에서 사용할 수 있다.
+
+  하위 클래스의 인스턴스를 역직렬화하면 상위 클래스의 인스턴스를 생성하여 ClassCastException을 일으킬 수 있다.
+
+
+
+##### 핵심 정리
+
+> 불변식을 지키기 위해 인스턴스를 통제해야 한다면 가능한 열거 타입을 사용하자. 여의치 않은 상황에서 직렬화와 인스턴스 통제가 모두 필요하다면 readResolve 메서드를 작성해 넣어야 하고, 그 클래스에서 모든 참조 타입 인스턴스 필드를 transient로 선언해야 한다.
+
+
+
+___
+
+
+
+##  아이템 90: 직렬화된 인스턴스 대신 직렬화 프록시 사용을 검토하라
+
+Serializable을 구현하기로 결정한 순간 언어 정상 메커니즘인 생성자 이외의 방법으로 인스턴스를 생성할 수 있게 된다.
+
+버그와 보안 문제가 일어날 가능성이 커진다는 것을 의미하는데, 이 위험을 크게 줄여줄 기법이 하나 있다. 
+
+##### 직렬화 프록시 패턴(serialization proxy pattern)
+
+* 바깥 클래스의 논리적 상태를 정밀하게 표현하는 중첩 클래스를 설계해 private으로 선언한다.
+
+  이 중첩 클래스가 바로 바깥 클래스의 직렬화 프록시다.
+
+* 중첩 클래스의 생성자는 단 하나여야 하며, 바깥 클래스를 매개변수로 받아야 한다.
+
+* 이 생성자는 단순히 인수로 넘어온 인스턴스의 데이터를 복사한다.
+
+* 일관성 검사나 방어적 복사도 필요 없으며, 바깥 클래스, 직렬호 프록시 모두 Serializable을 구현한다고 선언하면 된다.
+
+##### 직렬화한 period 클래스의 직렬화 프록시 예제
+
+~~~java
+// 방어적 복사를 사용하는 불변 클래스
+public final class Period implements Serializable {
+    private final Date start;
+    private final Date end;
+
+    /**
+     * @param  start 시작 시각
+     * @param  end 종료 시각; 시작 시각보다 뒤여야 한다.
+     * @throws IllegalArgumentException 시작 시각이 종료 시각보다 늦을 때 발생한다.
+     * @throws NullPointerException start나 end가 null이면 발행한다.
+     */
+    public Period(Date start, Date end) {
+        this.start = new Date(start.getTime());
+        this.end   = new Date(end.getTime());
+        if (this.start.compareTo(this.end) > 0)
+            throw new IllegalArgumentException(
+                    start + "가 " + end + "보다 늦다.");
+    }
+
+    public Date start () { return new Date(start.getTime()); }
+
+    public Date end () { return new Date(end.getTime()); }
+
+    public String toString() { return start + " - " + end; }
+
+
+    // Period 클래스용 직렬화 프록시
+    private static class SerializationProxy implements Serializable {
+        private final Date start;
+        private final Date end;
+
+        SerializationProxy(Period p) {
+            this.start = p.start;
+            this.end = p.end;
+        }
+
+        private static final long serialVersionUID =
+                234098243823485285L; // 아무 값이나 상관없다.
+      
+      private Object readResolve() {
+          return new Period(start, end);
+      }
+    }
+
+    // 직렬화 프록시 패턴용 writeReplace 메서드
+    private Object writeReplace() {
+        return new SerializationProxy(this);
+    }
+
+    // 직렬화 프록시 패턴용 readObject 메서드
+    private void readObject(ObjectInputStream stream)
+            throws InvalidObjectException {
+        throw new InvalidObjectException("프록시가 필요합니다.");
+    }
+}
+~~~
+
+* 직렬화 프록시 클래스는 Period와 완전히 같은 필드로 구성되었다.
+* 바깥 클래스에는 writeReplace 메서드를 추가한다.
+  * 이 메서드는 자바의 직렬화 시스템이 바깥 클래스 대신 SerializationProxy의 인스턴스를 반환하게 하는 역할을 한다.
+  * 직렬화가 이뤄지기 전에 바깥 클래스의 인스턴스를 직렬화 프록시로 변환해준다.ㄴ
+* readObject를 추가하면 불변식을 훼손하는 공격을 막을 수 있다.
+* 바깥 클래스와 논리적으로 동일한 인스턴스를 반환하는 readResolve 메서드를 직렬화 프록시 클래스에 추가한다.
+  * 이 메서드는 역직렬화 시에 직렬화 시스템이 직렬화 프록시를 다시 바깥 클래스의 인스턴스로 변환하게 해준다.
+* 방어적 복사처럼, 직렬화 프록시 패턴은 가짜 바이트 스트림 공격과 내부 필드 탈취 공격을 프록시 수준에서 차단해준다.
+* 직렬화 프록시는 Period의 필드를 final로 선언해도 되므로 진정한 불변으로 만들 수 있다.
+
+##### 직렬화 프록시 패턴이 readObject에서의 방어적 복사보다 강력한 경우가 하나 더 있다.
+
+* 직렬화 프록시 패턴은 역직렬화한 인스턴스와 원래의 직렬화된 인스턴스의 클래스가 달라도 정상 동작한다.
+
+##### 직렬화 프록시 패턴의 한계
+
+1. 클라이언트가 멋대로 확장할 수 있는 클래스에는 적용할 수 없다.
+2. 객체 그래프에 순환이 있는 클래스에도 적용할 수 없다.
+3. 직렬화 프록시 패턴이 주는 강력함과 안정성에도 대가가 따르는데, 방어적 복사보다 느리다.
+
+
+
+##### 핵심 정리
+
+> 제3자가 확장할 수 없는 클래스라면 가능한 한 직렬화 프록시 패턴을 사용하자. 이 패턴이 아마도 중요한 불변식을 안정적으로 직렬화해주는 가장 쉬운 방법일 것이다.
+
+
+
+___
+
+12장 직렬화 끝...
+
+### 😎이펙티브 자바를 마치며...
+
+이펙티브 자바를 완독하며 정리하였다. 주니어 개발자로서 전부 이해가 된 것은 아니지만(사실 많이 어려운 편이었다 ㅠㅠ) 이런 상황도 있구나하는 정도로 일단 이해했다. 나중에 이펙티브 자바에서 본 내용들을 직접 다루게 된다면 도움이 될 것이다. 이후에는 책을 학습하며 자바 실력이 아직 많이 부족하다고 느꼈기에... 기본에 충실하여 자바 공부좀 해야겠다.
+
+다음은 모던 자바 인 액션, 스프링 퀵 스타트, 스프링 부트, 테스트 코드 등 볼 책도 많이 있다...
+
